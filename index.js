@@ -44,16 +44,19 @@ function receiveMsg (message) {
 }
 
 var orderedKeys;
+//Full data structure
+//Html table will be sync with this structure
 var data = {};
 var midprice = {};
 var dataTable = document.querySelector("#data");
 var initialized = false;
 
-//create headers
+//Create headers dynamically with first message
+//This way, code is not dependant of data structure
 function initializeTable ( dataTable, message ) {
   initialized = true
-  //var head = dataTable.createTHead()
-  var row = dataTable.insertRow (-1)
+  var head = dataTable.tHead;
+  var row = head.insertRow (-1)
   
   for (var key in message) {
     if (message.hasOwnProperty(key) && showFields.indexOf(key) > -1 ) {
@@ -63,9 +66,9 @@ function initializeTable ( dataTable, message ) {
   }
   var cell = row.insertCell(-1)
   cell.innerHTML = midPriceTitle
-
 }
 
+//util function to maintain only fresh bids
 function cleanOldMidprices ( midPriceArray, currentTimestamp) {
   var lengthPrices = midPriceArray.length - 1
   //Iterate midprice array and remove elements older than 30 seconds
@@ -88,7 +91,7 @@ function updateData ( message ) {
   
   //sort keys in a new array
   orderedKeys = Object.keys(data);
-  orderedKeys.sort(function(a,b){return data[b]["lastChangeBid"] - data[a]["lastChangeBid"] });
+  orderedKeys.sort(function(a,b){return data[a]["lastChangeBid"] - data[b]["lastChangeBid"] });
   
   //calculate midprice
   var elemMidprice = (message["bestBid"] + message["bestAsk"]) / 2;
@@ -105,9 +108,9 @@ function updateData ( message ) {
 
 function removeChildren ( table )
 {
-  var numRows = table.rows.length
-  for(var x=numRows-1; x > 0; x--)
-    table.deleteRow(x)
+  var numRows = table.tBodies[0].rows.length
+  for(var x=numRows-1; x >= 0; x--)
+    table.tBodies[0].deleteRow(x)
 }
 
 //draw sparkline and add to table
@@ -136,7 +139,7 @@ function refreshTable () {
   orderedKeys.forEach(function(key) {
     var currentRow = data[key];
     //add new row to last position
-    var row = dataTable.insertRow(-1)
+    var row = dataTable.tBodies[0].insertRow(-1)
     
     //add cells with currency values
     for (var keyRow in currentRow) {
