@@ -18,6 +18,7 @@ global.DEBUG = false
 
 // configure visible fields
 const showFields = ["name", "bestBid", "bestAsk", "lastChangeAsk", "lastChangeBid"];
+const titles = ["Name", "Best Bid", "Best Ask", "Last Change Ask", "Last Change Bid &darr;"];
 const midPriceTitle = "Mid Price";
 
 const url = "ws://localhost:8011/stomp";
@@ -31,40 +32,46 @@ client.debug = function(msg) {
   }
 }
 
+var orderedKeys;
+//Full data structure
+//Html table will be sync with this structure
+var dataStruct = {};
+var midprice = {};
+var htmlTableVar = document.querySelector("#data");
+var initialized = false;
+
 //called when the client receives a STOMP message from the server
 function receiveMsg (message) {
   //return new promise
   if (message.body) {
     //console.info("got message with body " + message.body)
-    updateData (JSON.parse(message.body))
-    refreshTable ()
+    var messageJson = JSON.parse(message.body)
+    updateData (messageJson, htmlTableVar)
+    refreshTable (messageJson, htmlTableVar)
+    sortTable (htmlTableVar)
   } else {
     console.info ("got empty message")
   }
 }
 
-var orderedKeys;
-//Full data structure
-//Html table will be sync with this structure
-var data = {};
-var midprice = {};
-var dataTable = document.querySelector("#data");
-var initialized = false;
+
 
 //Create headers dynamically with first message
-//This way, code is not dependant of data structure
-function initializeTable ( dataTable, message ) {
+//This way, code is not dependent of data structure
+function initializeTable ( message, htmlTable) {
   initialized = true
-  var head = dataTable.tHead;
+  var head = htmlTable.tHead;
   var row = head.insertRow (-1)
   
   for (var key in message) {
     if (message.hasOwnProperty(key) && showFields.indexOf(key) > -1 ) {
-      var cell = row.insertCell(-1)
+      var th = document.createElement('th');
+      var cell = row.appendChild(th)
       cell.innerHTML = key
     }
   }
-  var cell = row.insertCell(-1)
+  var th = document.createElement('th');
+  var cell = row.appendChild(th)
   cell.innerHTML = midPriceTitle
 }
 
@@ -79,19 +86,15 @@ function cleanOldMidprices ( midPriceArray, currentTimestamp) {
   }
 }
 
-//update and sort data with last message
-function updateData ( message ) {
+//update data structure with last message
+function updateData ( message, htmlTable ) {
   
   //first time, create inmutable headers
   if(!initialized)
-    initializeTable(dataTable, message)
+    initializeTable(message, htmlTable)
   
   //popule data map by currency key
-  data[message["name"]] = message;
-  
-  //sort keys in a new array
-  orderedKeys = Object.keys(data);
-  orderedKeys.sort(function(a,b){return data[a]["lastChangeBid"] - data[b]["lastChangeBid"] });
+  dataStruct[message["name"]] = message;
   
   //calculate midprice
   var elemMidprice = (message["bestBid"] + message["bestAsk"]) / 2;
@@ -112,10 +115,20 @@ function removeChildren ( table )
   for(var x=numRows-1; x >= 0; x--)
     table.tBodies[0].deleteRow(x)
 }
+function cleanCell (cell)
+{
+  while (cell.hasChildNodes())
+    cell.removeChild(cell.lastChild);
+}
+
 
 //draw sparkline and add to table
-function addMidpriceSpakline (key, row) {
-  var cell = row.insertCell(-1)
+function addMidpriceSpakline (key, row, index) {
+  var cell = row.cells[index]
+  if (!cell)
+    cell = row.insertCell(-1)
+  else
+    cleanCell (cell)
   const sparkElement = document.createElement('span')
   const sparkline = new Sparkline(sparkElement)
   cell.appendChild (sparkElement)
@@ -130,29 +143,88 @@ function addMidpriceSpakline (key, row) {
 
 
 //update dom with last changes
-function refreshTable () {
+function refreshTable (message, htmlTable) {
   //this is probably not the most optimal procedure, but for simplicity, I'll clear the full table in each refresh
   //since order of all rows can change, and new rows could appear
-  removeChildren (dataTable)
+  //removeChildren (htmlTable)
   
-  //iterate ordered array and create rows using that order
-  orderedKeys.forEach(function(key) {
-    var currentRow = data[key];
+  //iterate overy keys and create rows using that order
+  var key = message["name"]
+
+  var body = htmlTable.tBodies[0]
+  
+  var row;
+  var rowArr = body.getElementsByClassName(key);
+  var create = false;
+  if ( rowArr.length === 0 )
+  {
+    create = true;
     //add new row to last position
-    var row = dataTable.tBodies[0].insertRow(-1)
-    
-    //add cells with currency values
-    for (var keyRow in currentRow) {
-      //show only enabled fields
-      if (currentRow.hasOwnProperty(keyRow)  && showFields.indexOf(keyRow) > -1) {
-        var cell = row.insertCell(-1)
-        cell.innerHTML = currentRow[keyRow]
-      }
+    row = htmlTable.tBodies[0].insertRow(-1)
+    row.id = key
+    row.className = key 
+  }
+  else
+    row = rowArr[0]
+
+  //add cells with currency values
+  var count = 0;
+  for (var keyColumn in message) {
+    //show only enabled fields
+    if (message.hasOwnProperty(keyColumn)  && showFields.indexOf(keyColumn) > -1) {
+      var cell;
+      if ( create )
+        cell = row.insertCell(-1)
+      else
+        cell = row.cells[count]
+      cell.innerHTML = message[keyColumn]
+      count++;
     }
     
-    addMidpriceSpakline (key, row)
+  }
+  
+  addMidpriceSpakline (key, row, count)
+
+}
+
+
+function sortTable( htmlTable ) {
+  //sort keys in a new array using data struct
+  orderedKeys = Object.keys(dataStruct);
+  orderedKeys.sort(function(a,b){return dataStruct[a]["lastChangeBid"] - dataStruct[b]["lastChangeBid"] });
+  
+  var body = htmlTable.tBodies[0]
+  var count = 0;
+  orderedKeys.forEach(function(key) {
+    var row = body.getElementsByClassName(key)[0];
+    //If row must change its position (index-1 to avoid header)
+    var index = row.rowIndex - 1
+    if( index != count)
+    {
+      var currentDataRow = dataStruct[key];
+      //add new row to current position
+      
+      //var newrow = htmlTable.tBodies[0].insertRow(count)
+      var oldId = row.id
+      var oldClassName = row.className
+      var oldHtml = row.innerHTML
+      var span = row.getElementsByTagName("span")[0]
+      
+      htmlTable.tBodies[0].deleteRow(index)
+      
+      var newrow = htmlTable.tBodies[0].insertRow(count)
+      newrow.id = oldId
+      newrow.className = oldClassName
+      newrow.innerHTML = oldHtml
+      cleanCell( newrow.cells[newrow.cells.length-1] )
+      newrow.cells[newrow.cells.length-1].appendChild (span)
+    }
+    count++
   });
 }
+
+
+
 
 //called when connection stablished
 function connectCallback() {

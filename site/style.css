@@ -24,32 +24,31 @@ table {
     margin: auto;
     left: auto;
     right: auto;
-    border: 1px solid grey;
+    border: 2px solid grey;
     background-color:  #70af97;
 }
 
-table th { 
+table th {
+	width: 200px;
+	border: solid grey;
+	border-width: 0px 0px 2px 0px;
 	text-align: center;
-	padding: 20px;
-    font-weight: 500;
+	padding: 10px;
+    font-weight: bold;
     text-transform: uppercase;
-    width: 140px;
+    background-color: #70af97;
 }
 
-tr:nth-child(even) {
+table td:nth-child(1) {
+    text-align: center
+}
+
+table tr:nth-child(even) {
     background-color:   #4fa283;
 }
 
-td {
+table td {
     width: 130px;
     text-align: right;
 }
 
-th {
-    text-align: center;
-    color: white;
-    background-color: black;
-}
-td:nth-child(1) {
-    text-align: center
-}
