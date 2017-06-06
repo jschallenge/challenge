@@ -31,6 +31,7 @@
     "typedarray-to-buffer": "^3.1.2",
     "yaeti": "0.0.6",
     "webpack-dev-server": "^1.14.1",
-    "mocha": "^3.4.2"
+    "mocha": "^3.4.2",
+    "jsdom": "^11.0.0"
   }
 }

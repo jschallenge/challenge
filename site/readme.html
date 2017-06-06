@@ -41,8 +41,34 @@
         The folder "test" consist of two files:
          <ul>
         <li><strong>mockData.js</strong>: Sample data to run the tests</li>
-        <li><strong>test.js</strong>: There are two tests. One to calculate the mid price, and another to sort all the data in the global internal structure.</li>
-</ul>
+        <li><strong>test.js</strong>: Here you will found the mocha tests</li>
+        </ul>
+    <h2>Tests</h2>
+        <p>
+            1- Testing the mid price<br>
+            2- Sort of the rows<br>
+            3- A complete end-to-end test using jsdom to mock the DOM. This test will add 3 new rows and a repeated one.<br>
+        </p>
+
+    <h3>Output</h3>
+    <pre>
+    DB Challenge
+    #calculateMidprice()
+      √ should calculate the mid price
+    #sortData()
+      [ 'sample2', 'sample1', 'sample3', 'sample5', 'sample4', 'sample6' ]
+      √ should sort the data by the lastChangeBid field
+    #endToEndTest()
+      √ Here we add two new rows
+
+
+  3 passing (41ms)
+
+
+    </pre>
+
+
+
 
     </p>
 

@@ -21,17 +21,21 @@ function addMidpriceSparkline (key, row, index) {
   if (!cell)
     cell = row.insertCell(-1)
   else
-    cleanCell (cell)
-  const sparkElement = document.createElement('span')
-  const sparkline = new Sparkline(sparkElement)
-  cell.appendChild (sparkElement)
-  
-  var onlyPrices = [];
-  midprice[key].forEach(function(item) {
-    onlyPrices.push ( item[1] )
-  });
-  
-  sparkline.draw(onlyPrices)
+  cleanCell (cell)
+
+   if (typeof Sparkline != "undefined") { //Just for testing pourpouse and not compatible browsers
+        const sparkElement = document.createElement('span');
+        const sparkline = new Sparkline(sparkElement);
+        cell.appendChild (sparkElement);
+        var onlyPrices = [];
+          midprice[key].forEach(function(item) {
+            onlyPrices.push ( item[1] )
+          });
+
+          sparkline.draw(onlyPrices)
+  }
+  else cell.appendChild ( document.createTextNode('N/A') );
+
 }
 
 
@@ -43,8 +47,7 @@ function updateOrCreateRow(  message ) {
     var row;
     var rowArr = body.getElementsByClassName(key);
     var create = false;
-    if ( rowArr.length === 0 )
-    {
+    if ( rowArr.length === 0 )   {
       create = true;
       //add new row to last position
       row = htmlTable.tBodies[0].insertRow(-1)
@@ -62,12 +65,15 @@ function updateOrCreateRow(  message ) {
         var cell;
         if ( create )
           cell = row.insertCell(-1)
-        else
-          cell = row.cells[count]
+        else {
+          cell = row.cells[count];
+          }
         cell.innerHTML = message[keyColumn]
         count++;
       }
     }
+
+
     addMidpriceSparkline (key, row, count);
 }
 
@@ -89,32 +95,32 @@ function sortTable( ) {
   //sort keys in a new array using data struct
   var orderedKeys = sortData(dataStruct);
 
-  var body = htmlTable.tBodies[0]
+  var body = htmlTable.tBodies[0];
   var count = 0;
   orderedKeys.forEach(function(key) {
     var row = body.getElementsByClassName(key)[0];
 
     //If row must change its position (index-1 to avoid header)
-    var index = row.rowIndex - 1
+    var index = row.rowIndex - 1;
 
     if( index != count) {
       var currentDataRow = dataStruct[key];
-      var oldId = row.id
-      var oldClassName = row.className
-      var oldHtml = row.innerHTML
-      var span = row.getElementsByTagName("span")[0]
+      var oldId = row.id;
+      var oldClassName = row.className;
+      var oldHtml = row.innerHTML;
+      var span = row.getElementsByTagName("span")[0];
 
-      htmlTable.tBodies[0].deleteRow(index)
+      htmlTable.tBodies[0].deleteRow(index);
 
       //add new row to current position
-      var newrow = htmlTable.tBodies[0].insertRow(count)
-      newrow.id = oldId
-      newrow.className = oldClassName
-      newrow.innerHTML = oldHtml
-      cleanCell( newrow.cells[newrow.cells.length-1] )
-      newrow.cells[newrow.cells.length-1].appendChild (span)
+      var newrow = htmlTable.tBodies[0].insertRow(count);
+      newrow.id = oldId;
+      newrow.className = oldClassName;
+      newrow.innerHTML = oldHtml;
+      cleanCell( newrow.cells[newrow.cells.length-1] );
+      newrow.cells[newrow.cells.length-1].appendChild (span);
     }
-    count++
+    count++;
   });
 }
 
@@ -152,7 +158,7 @@ function cleanCell (cell) {
     cell.removeChild(cell.lastChild);
 }
 
-function init(selector) {
+function init(selector ) {
   htmlTable = document.querySelector(selector);
 }
 
