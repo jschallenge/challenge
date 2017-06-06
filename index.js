@@ -9,21 +9,26 @@ require('./site/index.html')
 // Apply the styles in style.css to the page.
 require('./site/style.css')
 
-// if you want to use es6, you can do something like
-//     require('./es6/myEs6code')
-// here to load the myEs6code.js file, and it will be automatically transpiled.
+var sortTable = require('./site/sort.js')
+var calculateMidprice = require('./site/midprice.js')
 
 // Change this to get detailed logging from the stomp library
 global.DEBUG = false
 
 // configure visible fields
 const showFields = ["name", "bestBid", "bestAsk", "lastChangeAsk", "lastChangeBid"];
-const titles = ["Name", "Best Bid", "Best Ask", "Last Change Ask", "Last Change Bid &darr;"];
+const titles = {"name":"Name", "bestBid": "Best Bid", "bestAsk": "Best Ask", "lastChangeAsk": "Last Change Ask", "lastChangeBid": "Last Change Bid &#9651;"};
 const midPriceTitle = "Mid Price";
 
 const url = "ws://localhost:8011/stomp";
-const expireMidprice = 30000;
-  
+
+//Full data structure
+//Html table will be sync with this structure
+var dataStruct = {};
+var midprice = {};
+var htmlTableVar = document.querySelector("#data");
+var initialized = false;
+
 //create Websockets client
 const client = Stomp.client(url)
 client.debug = function(msg) {
@@ -32,32 +37,33 @@ client.debug = function(msg) {
   }
 }
 
-var orderedKeys;
-//Full data structure
-//Html table will be sync with this structure
-var dataStruct = {};
-var midprice = {};
-var htmlTableVar = document.querySelector("#data");
-var initialized = false;
+//called when connection stablished
+function connectCallback() {
+  console.info ("It has now successfully connected to a stomp server serving price updates for some foreign exchange currency pairs.")
+  //start reading messages from topic
+  var subscription = client.subscribe("/fx/prices", receiveMsg)
+}
+
+client.connect({}, connectCallback, function(error) {
+  alert(error.headers.message)
+})
 
 //called when the client receives a STOMP message from the server
 function receiveMsg (message) {
-  //return new promise
   if (message.body) {
-    //console.info("got message with body " + message.body)
     var messageJson = JSON.parse(message.body)
     updateData (messageJson, htmlTableVar)
     refreshTable (messageJson, htmlTableVar)
-    sortTable (htmlTableVar)
+    sortTable (htmlTableVar, dataStruct)
   } else {
     console.info ("got empty message")
   }
 }
 
-
-
-//Create headers dynamically with first message
-//This way, code is not dependent of data structure
+/* 
+Create headers dynamically with first message
+Really, data structure in not usually dynamic, but this is a JS challenge, so I'll do intensive use of JS :)
+*/
 function initializeTable ( message, htmlTable) {
   initialized = true
   var head = htmlTable.tHead;
@@ -67,7 +73,7 @@ function initializeTable ( message, htmlTable) {
     if (message.hasOwnProperty(key) && showFields.indexOf(key) > -1 ) {
       var th = document.createElement('th');
       var cell = row.appendChild(th)
-      cell.innerHTML = key
+      cell.innerHTML = titles[key]
     }
   }
   var th = document.createElement('th');
@@ -75,18 +81,7 @@ function initializeTable ( message, htmlTable) {
   cell.innerHTML = midPriceTitle
 }
 
-//util function to maintain only fresh bids
-function cleanOldMidprices ( midPriceArray, currentTimestamp) {
-  var lengthPrices = midPriceArray.length - 1
-  //Iterate midprice array and remove elements older than 30 seconds
-  for(var index=lengthPrices-1; index>=0; index--)
-  {
-    if ( currentTimestamp - midPriceArray[index][0] > expireMidprice )
-      midPriceArray.splice (index, 1)
-  }
-}
-
-//update data structure with last message
+//Update data structure with last message
 function updateData ( message, htmlTable ) {
   
   //first time, create inmutable headers
@@ -96,31 +91,8 @@ function updateData ( message, htmlTable ) {
   //popule data map by currency key
   dataStruct[message["name"]] = message;
   
-  //calculate midprice
-  var elemMidprice = (message["bestBid"] + message["bestAsk"]) / 2;
-
-  var currentTimestamp = Date.now()
-  //check if exist previous midPrices
-  if ( midprice[message["name"]] )
-    cleanOldMidprices (midprice[message["name"]], currentTimestamp)
-  else
-    midprice[message["name"]] = []
-  //Add new midprice
-  midprice[message["name"]].push( [currentTimestamp, elemMidprice] )
+  calculateMidprice(midprice, message)
 }
-
-function removeChildren ( table )
-{
-  var numRows = table.tBodies[0].rows.length
-  for(var x=numRows-1; x >= 0; x--)
-    table.tBodies[0].deleteRow(x)
-}
-function cleanCell (cell)
-{
-  while (cell.hasChildNodes())
-    cell.removeChild(cell.lastChild);
-}
-
 
 //draw sparkline and add to table
 function addMidpriceSpakline (key, row, index) {
@@ -141,18 +113,11 @@ function addMidpriceSpakline (key, row, index) {
   sparkline.draw(onlyPrices)
 }
 
-
-//update dom with last changes
+//sync DOM with last changes
 function refreshTable (message, htmlTable) {
-  //this is probably not the most optimal procedure, but for simplicity, I'll clear the full table in each refresh
-  //since order of all rows can change, and new rows could appear
-  //removeChildren (htmlTable)
-  
   //iterate overy keys and create rows using that order
   var key = message["name"]
-
   var body = htmlTable.tBodies[0]
-  
   var row;
   var rowArr = body.getElementsByClassName(key);
   var create = false;
@@ -180,60 +145,12 @@ function refreshTable (message, htmlTable) {
       cell.innerHTML = message[keyColumn]
       count++;
     }
-    
   }
-  
   addMidpriceSpakline (key, row, count)
-
 }
 
-
-function sortTable( htmlTable ) {
-  //sort keys in a new array using data struct
-  orderedKeys = Object.keys(dataStruct);
-  orderedKeys.sort(function(a,b){return dataStruct[a]["lastChangeBid"] - dataStruct[b]["lastChangeBid"] });
-  
-  var body = htmlTable.tBodies[0]
-  var count = 0;
-  orderedKeys.forEach(function(key) {
-    var row = body.getElementsByClassName(key)[0];
-    //If row must change its position (index-1 to avoid header)
-    var index = row.rowIndex - 1
-    if( index != count)
-    {
-      var currentDataRow = dataStruct[key];
-      //add new row to current position
-      
-      //var newrow = htmlTable.tBodies[0].insertRow(count)
-      var oldId = row.id
-      var oldClassName = row.className
-      var oldHtml = row.innerHTML
-      var span = row.getElementsByTagName("span")[0]
-      
-      htmlTable.tBodies[0].deleteRow(index)
-      
-      var newrow = htmlTable.tBodies[0].insertRow(count)
-      newrow.id = oldId
-      newrow.className = oldClassName
-      newrow.innerHTML = oldHtml
-      cleanCell( newrow.cells[newrow.cells.length-1] )
-      newrow.cells[newrow.cells.length-1].appendChild (span)
-    }
-    count++
-  });
+function cleanCell (cell)
+{
+  while (cell.hasChildNodes())
+    cell.removeChild(cell.lastChild);
 }
-
-
-
-
-//called when connection stablished
-function connectCallback() {
-  console.info ("It has now successfully connected to a stomp server serving price updates for some foreign exchange currency pairs.")
-  //start reading messages from topic
-  var subscription = client.subscribe("/fx/prices", receiveMsg)
-}
-
-client.connect({}, connectCallback, function(error) {
-  alert(error.headers.message)
-})
-
