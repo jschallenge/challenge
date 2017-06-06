@@ -47,8 +47,11 @@ client.connect({}, connectCallback, function(error) {
 function receiveMsg (message) {
   if (message.body) {
     var messageJson = JSON.parse(message.body)
+    //feed data structure with new message
     table.updateData (messageJson, htmlTableVar, dataStruct)
+    //add new message to html table
     table.refreshTable (messageJson, htmlTableVar)
+    //order html table
     sortTable (htmlTableVar, dataStruct)
   } else {
     console.info ("got empty message")
