@@ -9,8 +9,17 @@ var testMessage = {
 }
 var midPrice=106.99085002916864
 
+var dataToSort = {
+  "sample1":{"lastChangeBid": 0},
+  "sample2":{"lastChangeBid": -4},
+  "sample3":{"lastChangeBid": 2},
+  "sample4":{"lastChangeBid": 9},
+  "sample5":{"lastChangeBid": 4},
+  "sample6":{"lastChangeBid": 13}
+};
 
 module.exports = {
+    dataToSort:dataToSort,
     testMessage:testMessage,
     expectedMidPrice: midPrice
 };

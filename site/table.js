@@ -11,10 +11,8 @@ const showFields = ["name", "bestBid", "bestAsk", "lastChangeAsk", "lastChangeBi
 const titles = {"name":"Name", "bestBid": "Best Bid", "bestAsk": "Best Ask", "lastChangeAsk": "Last Change Ask", "lastChangeBid": "Last Change Bid &#9651;"};
 const expireMidprice = 30000;
 
-//var initialized = false;
+
 var midprice = {};
-
-
 
 
 //draw sparkline and add to table
@@ -74,14 +72,22 @@ function updateOrCreateRow(  message ) {
 }
 
 
+/**
+* Here we sort the data and return an array of the ordered keys. We use a lambda function.
+*/
+function sortData( data ) {
+   var orderedKeys = Object.keys(data);
+   orderedKeys.sort( (a,b) => data[a]["lastChangeBid"] - data[b]["lastChangeBid"]);
+   return orderedKeys;
+}
 
+
+/**
+* First we order the data. Once ordered, we repaint the table applying the minimum changes.
+*/
 function sortTable( ) {
   //sort keys in a new array using data struct
-  var orderedKeys = Object.keys(dataStruct);
-
-  orderedKeys.sort( function(a,b){
-        return dataStruct[a]["lastChangeBid"] - dataStruct[b]["lastChangeBid"] }
-        );
+  var orderedKeys = sortData(dataStruct);
 
   var body = htmlTable.tBodies[0]
   var count = 0;
@@ -141,12 +147,10 @@ function cleanOldMidprices ( midPriceArray, currentTimestamp) {
   }
 }
 
-
 function cleanCell (cell) {
   while (cell.hasChildNodes())
     cell.removeChild(cell.lastChild);
 }
-
 
 function init(selector) {
   htmlTable = document.querySelector(selector);
@@ -156,6 +160,7 @@ function update ( selector, message ) {
 
    //Update data structure with last message
    dataStruct[message["name"]] = message;
+   console.log(JSON.stringify(dataStruct));
 
    calculateMidprice(midprice, message);
    updateOrCreateRow ( message );
@@ -164,5 +169,7 @@ function update ( selector, message ) {
 
 module.exports = {
     init:init,
-    update:update
+    update:update,
+    calculateMidprice:calculateMidprice,
+    sortData:sortData
 };
