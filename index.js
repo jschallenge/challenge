@@ -11,18 +11,11 @@ require('./site/style.css')
 
 const url = "ws://localhost:8011/stomp";
 
-var sortTable = require('./site/sort.js')
 var table = require('./site/table.js')
 
 // Change this to get detailed logging from the stomp library
 global.DEBUG = false
 
-// configure visible fields
-//Full data structure
-//Html table will be sync with this structure
-var dataStruct = {};
-
-var htmlTableVar = document.querySelector("#data");
 
 //create Websockets client
 const client = Stomp.client(url)
@@ -31,6 +24,9 @@ client.debug = function(msg) {
     console.info(msg)
   }
 }
+
+//Table initialization
+table.init("#data");
 
 //called when connection stablished
 function connectCallback() {
@@ -47,9 +43,7 @@ client.connect({}, connectCallback, function(error) {
 function receiveMsg (message) {
   if (message.body) {
     var messageJson = JSON.parse(message.body)
-    table.updateData (messageJson, htmlTableVar, dataStruct)
-    table.refreshTable (messageJson, htmlTableVar)
-    sortTable (htmlTableVar, dataStruct)
+    table.update("#data", messageJson);
   } else {
     console.info ("got empty message")
   }
