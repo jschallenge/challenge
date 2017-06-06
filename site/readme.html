@@ -29,8 +29,8 @@
             1- A new message arrives<br>
             2- The internal dataStruct object is updated. This is a map where the Key will be the currency ID. <br>
             3- The mid price is calculated. Here we take into account the last 30 seconds, so a new structure (midprice) with an array of [timestamp,midprice] is needed. We only consider the last 30seconds. Olders are removed. <br>
-            4- Update the row. If the entry does not exist, here we create a new one. Otherwise, the data is updated and only this ROW is repainted.
-            5- Eventually, we need to sort the data. The last update could change the order, so we sort the dataStruct and once ordered, we apply the changes to the DOM.
+            4- Update the row. If the entry does not exist, here we create a new one. Otherwise, the data is updated and only this ROW is repainted.<br>
+            5- Eventually, we need to sort the data. The last update could change the order, so we sort the dataStruct and once ordered, we apply the changes to the DOM.<br>
         </p>
     </p>
 

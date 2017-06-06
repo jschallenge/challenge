@@ -43,7 +43,7 @@ client.connect({}, connectCallback, function(error) {
 function receiveMsg (message) {
   if (message.body) {
     var messageJson = JSON.parse(message.body)
-    table.update("#data", messageJson);
+    table.update(messageJson);
   } else {
     console.info ("got empty message")
   }

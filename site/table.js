@@ -156,11 +156,9 @@ function init(selector) {
   htmlTable = document.querySelector(selector);
 }
 
-function update ( selector, message ) {
-
-   //Update data structure with last message
+function update ( message ) {
+//Update data structure with last message
    dataStruct[message["name"]] = message;
-   console.log(JSON.stringify(dataStruct));
 
    calculateMidprice(midprice, message);
    updateOrCreateRow ( message );
